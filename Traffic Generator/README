@@ -1,0 +1,137 @@
+SynFull Traffic Generator 1.0
+=============================
+
+1) Overview
+
+The SynFull Traffic Generator is an example implementation of the methodology outlined in: 
+SynFull: Synthetic Traffic Models Capturing a Full Range of Cache Coherent Behaviour, In 
+Proceedings of the International Symposium on Computer Architecture (ISCA), June 2014, 
+which will now simply be referred to as "the paper". 
+
+Included is the source code for generating traffic based on models created for a full-system
+simulation as configured in the paper. The models generate traffic according to 32 nodes, 16
+of which are private L2 caches and the other 16 are directories. You can map these nodes to
+your network simulator however you like. Even numbered nodes are the caches, while odd numbered
+nodes are directories. 
+
+2) Source Files
+
+The src directory includes the source code for the traffic generator. Most of the code is
+commented for your convenience. It uses several global variables to keep implementation
+simple - that is, probability distributions and other model information are easily accessible
+anywhere.
+
+The traffic generator uses a file socket to communicate as defined in the src/netstream directory.
+In this implementation, SynFull is the client. As such, you must modify your network simulator to
+act as the server. An example of how to do this is shown in NetworkInterface.cpp. The traffic
+generator and your network simulator will work in lock-step during the simulation, incrementing
+by one cycle at a time. 
+
+3) Model Files 
+
+Several models are provided for you that have been generated based on ideal network traces as
+described in the paper. These models are for a variety of PARSEC and SPLASH-2 benchmarks. The
+model files themselves are in text format, so you can see the actual raw values that were 
+modelled. The code takes these values and converts them into probability distributions (with
+the exception of the Markov probability matrices). 
+
+You can potentially change the values found in the model files to create your own custom model,
+however I have not experimented with this. You should also be careful, as the traffic generator
+expects certain values for certain parts of the model. I would be weary of changing the Markov
+probabilities, for example, but changing the volume distributions (e.g. WRITE_INJECTION) is 
+probably harmless. 
+
+The model files are divided into several sections with different headers. Simple headers act as
+name-value pairs, while complex headers have a BEGIN and END and usually identify some probability
+distribution. A description for each of these headers can be found below:
+
+	Simple Headers
+	--------------
+
+		HIER_CLASSES: 	The number of macro phases in the model file
+		TIME_SPAN: 		The number of cycles long each macro phase is
+		MEMORY: 		The memory the Markov chain supports (currently, only 1 is supported)
+		NUM_NODES: 		The number of nodes in the simulation (i.e. sources and destinations)
+		NUM_CLASSES:	The number of micro phases for a given macro phase
+		RESOLUTION:		The number of cycles long each micro phase is
+
+	Complex Headers
+	---------------
+
+		HIER_BEGIN_ID		The micro model for the given macro phase begins after this line
+
+		HIER_MARKOV			The transition probability matrix for macro phases (Markov Chain)
+		HIER_MARKOV_STEADY	The Markov chain's steady state for macro phases
+		MARKOV				The transition probability matrix for micro phases (Markov Chain)
+		MARKOV_STEADY		The Markov chain's steady state for micro phases (not used)
+		
+		*_SPATIAL			The spatial injection distribution (i.e. who injects) per
+							message type.
+		*_FLOWS				The flow injection distribution (i.e. destinations) per message
+							type
+		*_INJECTION			The volume distributions per message type. Starts at zero
+		FORWARD_PROB.		The probability a directory forwards a request
+		FORWARD_FLOWS		The flow injection distribution for forwarded requests
+		INVALIDATE_PROB.	The volume distribution for invalidates at each message type
+		INVALIDATE_FLOWS	The flow injection distribution for invalidates at each directory
+		
+
+4) Step-by-Step Guide
+
+This section describes the steps you need to do in order to run SynFull with your desired network 
+simulator. First, you must modify the network simulator to work with NetworkInterface.cpp:
+
+	Step 1 - Identify the portions of code in your network simulator where:
+		- The network is initialized
+		- The network progresses to the next cycle in the simulation	
+		- packets are injected (e.g. into routers). 
+		- packets have reached their destination
+
+	Step 2 - Based on the portions of code identified in Step 1, you'll want to extract packets from
+	NetworkInterface.cpp to inject and notify NetworkInterface.cpp of packets that have arrived. One
+	possible implementation is to use two queues - NetworkInterface will populate one queue with 
+	packets to be injected, and remove packets from another queue for packets to be "ejected" (i.e.
+	they have reached their destination).
+
+	Step 3 - When the network is initialized, NetworkInterface::Init should be called in order to
+	set up the network simulator as a server. NetworkInterface will then "listen" on a file socket
+	for a connection. Once a connection has been established with the TrafficGenerator, your network
+	simulator will proceed to initialize everything else.
+
+	Step 4- For the portion of code where the network simulator progresses to the next cycle, call 
+	the NetworkInterface::Step function to receive packets from the TrafficGenerator and notify it of
+	packets that have arrived. Continueing from the previous example, this can be done by populating
+	and depopulating queues with packets.
+
+Once you have modified your network simulator to interface with the TrafficGenerator, you can run it.
+
+	Step 1 - Run your network simulator, it should stop during initialization and wait for a 
+	connection before proceeding.
+
+	Step 2 - Run the TrafficGenerator, indicating the model file, the desired number of cycles to
+	simulate, and whether or not the simulation should end prematurely due to steady state (use 1 as 
+	the argument to end prematurely, 0 otherwise). A connection should be established and packets will
+	be injected and ejected from the network simulator on a cycle by cycle basis.
+
+		Example 1 - Run barnes for 10 million cycles and exit on steady state
+		
+			./tgen ../models/barnes.model 10000000 1 
+
+		Example 2 - Run bodytrack for 50 million cycles
+
+			./tgen ../models/bodytrack.model 50000000 0
+
+	==================================================================================================
+	IMPORTANT: You must run the traffic generator and your network simulator server from the same
+	directory. This is because the file socket is created in this directory. You can modify this if
+	you wish. Also, you must not run more than one server in the same directory at a time. You can 
+	also modify this if you want by using different file descriptors for different socket connections,
+	but the current code does not support this.
+	==================================================================================================
+
+5) Conclusion
+
+Again this is only one application of our methodology. You can adapt the methodology to a number
+of different configurations and coherence protocols by using the same tools: volume distributions,
+spatial distributions and flows, and sharing patterns (e.g. modelling invalidates/forwarded requests
+at different directories).
