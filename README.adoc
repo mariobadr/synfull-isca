@@ -1,0 +1,12 @@
+= SynFull ISCA 2014 Reference Implementation
+
+This repository is a reference implementation of the methodology outlined in:
+
+  SynFull: Synthetic Traffic Models Capturing a Full Range of Cache Coherent Behaviour, In Proceedings of the International Symposium on Computer Architecture (ISCA), June 2014
+
+Included are:
+
+* The C++ source code for generating synthetic traffic
+* The R source code for creating models based on traces
+* Generated models used in the paper
+* The Booksim source code used to evaluate networks-on-chip in the paper
