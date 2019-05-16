@@ -116,6 +116,7 @@ moc_bgui.cpp: booksim_config.hpp \
 	$(MOC) $(INCPATH) bgui.hpp -o moc_bgui.cpp
 
 ${LEX_OBJS}: lex.yy.c y.tab.h
+	mkdir -p $(OBJDIR)/netstream
 	$(CC) $(CPPFLAGS) -c $< -o $@
 
 ${YACC_OBJS}: y.tab.c y.tab.h
