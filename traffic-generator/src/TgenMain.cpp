@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
 	}
 
 	ifstream modelFile(argv[1]);
-	if(modelFile == NULL) {
+	if(!modelFile.good()) {
 		cerr << "Could not open file " << argv[1] << endl;
 		return -1;
 	}
