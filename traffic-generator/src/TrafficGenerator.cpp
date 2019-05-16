@@ -35,7 +35,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 using namespace std;
 
 //Set this to 0 to debug without connecting to booksim
-#define CONNECT 0
+#define CONNECT 1
 
 SocketStream m_channel;
 
@@ -97,7 +97,7 @@ void printPacket(InjectReqMsg msg) {
 void connect() {
 #if CONNECT
 	// connect to network simulator
-	assert(m_channel.connect() == 0);
+	assert(m_channel.connect(NS_HOST, NS_PORT) == 0);
 
 	// send request to initialize
 	InitializeReqMsg req;
