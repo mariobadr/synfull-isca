@@ -20,10 +20,9 @@ $(PROG): $(OBJS)
 	$(CPP) $^ -o $(PROGDIR)$@
 	 
 ${OBJDIR}/%.o: %.cpp
-	mkdir -p $(OBJDIR)
+	mkdir -p $(OBJDIR)/netstream
 	$(CPP) $(CPPFLAGS) -c $< -o $@
 	
 clean:
-	rm -f $(OBJS) 
+	rm -rf $(OBJDIR)
 	rm -f $(PROGDIR)$(PROG)
-	rm -f *~
